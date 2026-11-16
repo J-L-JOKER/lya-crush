@@ -1,27 +1,37 @@
 {
-  "background_color": "#ffffff",
-  "dir": "ltr",
-  "display": "standalone",
   "name": "LYA CRUSH",
-  "orientation": "any",
-  "scope": "/",
   "short_name": "LYA CRUSH",
+  "description": "Juego de dulces, combina dulces y gana monedas. Juega gratis sin cuenta.",
   "start_url": "/",
-  "theme_color": "#ff2e8a",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#FF2E8A",
   "icons": [
     {
-      "src": "https://poetic-lolly-88ba9f.netlify.app/favicon.ico",
-      "type": "image/x-icon",
-      "isSquare": false,
-      "isPng": false,
-      "isWebp": false,
-      "isJpg": false,
-      "width": 0,
-      "is512x512": false,
-      "is256x256": false,
-      "is192x192": false
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ],
-  "id": "/",
-  "description": "Juego de dulces, combina dulces y gana monedas. Juega gratis sin cuenta."
+  ]
 }
