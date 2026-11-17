@@ -1200,7 +1200,7 @@ button{
   height:10px;
   border:1.5px solid #fff;
   box-shadow:0 0 6px rgba(255,255,255,.9);
-  animation:bits .85s ease-out forwards
+  animation:bits .35s ease-out forwards
 }
 
 @keyframes bits{
@@ -1274,25 +1274,29 @@ button{
 
 .morula-ray{
   stroke-linecap:round;
+  stroke-linejoin:round;
   stroke-dasharray:var(--rayLen);
   stroke-dashoffset:var(--rayLen);
-  animation:morulaRayDraw .22s linear forwards
+  animation:morulaRayDraw .09s linear forwards, morulaRayFade .18s ease-out .09s forwards
 }
 
 .morula-ray-glow{
   stroke-linecap:round;
+  stroke-linejoin:round;
   opacity:.32;
   stroke-dasharray:var(--rayLen);
   stroke-dashoffset:var(--rayLen);
-  animation:morulaRayDraw .22s linear forwards
+  animation:morulaRayDraw .09s linear forwards, morulaRayFade .18s ease-out .09s forwards
 }
 
 .morula-ray-core{
   stroke-linecap:round;
+  stroke-linejoin:round;
   stroke-dasharray:var(--rayLen);
   stroke-dashoffset:var(--rayLen);
-  animation:morulaRayDraw .22s linear forwards
+  animation:morulaRayDraw .09s linear forwards, morulaRayFade .18s ease-out .09s forwards
 }
+@keyframes morulaRayFade{ from{opacity:1} to{opacity:0} }
 
 @keyframes morulaRayDraw{
   from{
@@ -1305,11 +1309,11 @@ button{
 }
 
 .morula-ray-spark{
-  animation:morulaTwinkle .28s ease-in-out infinite
+  animation:morulaTwinkle .12s ease-in-out 1
 }
 
 .morula-ray-head{
-  animation:morulaTwinkle .28s ease-in-out infinite
+  animation:morulaTwinkle .12s ease-in-out 1
 }
 
 .morula-origin-spark{
@@ -3038,6 +3042,8 @@ c("div",{className:"map-path",children:Array.from({length:Math.max(15,t+10)},(a,
 
 <script>
 (function(){
+  // MUSICA NUEVA: SUSPENSO CON POP - no toca lo demás del juego
+  // Suspenso = notas en menor (La menor), bajo grave tenso, latido. Pop = ritmo movido, palmas, bajo pegajoso
   var ctx=null, step=0, timer=null, playing=false;
   function ensureCtx(){ if(!ctx){ var C=window.AudioContext||window.webkitAudioContext; if(!C) return null; ctx=new C(); } if(ctx.state==='suspended') ctx.resume(); return ctx; }
   function nota(f,t0,dur,tipo,vol){ try{ var o=ctx.createOscillator(), g=ctx.createGain(); o.type=tipo; o.frequency.value=f; g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(Math.max(0.0001,vol),t0+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur); o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0+dur+0.05);}catch(e){} }
@@ -3045,64 +3051,38 @@ c("div",{className:"map-path",children:Array.from({length:Math.max(15,t+10)},(a,
   function quedanSegundos(){ try{ var els=document.body.innerText.match(/(\d+)s/); if(!els) return 99; return parseInt(els[1],10);}catch(e){ return 99; } }
   function hayTablero(){ return !!document.querySelector('.board') || !!document.querySelector('[class*="board"]') || document.body.innerText.indexOf('Meta')>-1; }
   function hayMapa(){ return !!document.querySelector('.map-shell') || !!document.querySelector('.map-world') || document.body.innerText.indexOf('MAPA')>-1; }
-  function haySonidoApagado(){ var txt=document.body.innerText; return txt.indexOf('Silencio')>-1 && txt.indexOf('Alto')<0; }
   function tick(){
     if(!ensureCtx()) return;
     var enMapa = !hayTablero() && hayMapa();
     var enJuego = hayTablero();
     if(!enMapa && !enJuego) return;
-    if(enMapa){
-      var nowM=ctx.currentTime+0.05;
-      var tptM=[523.25,659.25,783.99,880,1046.5,880,783.99,659.25,523.25,659.25,783.99,880,1046.5,1174.7,1046.5,880];
-      var TPM=tptM[step%16];
-      // FIESTA INICIO: melodía movida + tambores en cada golpe
-      if(step%2===0){ nota(TPM, nowM, 0.55, 'square', 0.18); nota(TPM, nowM, 0.55, 'sine', 0.18); }
-      if(step%2===1){ nota(TPM*0.5, nowM, 0.30, 'triangle', 0.16); }
-      tambor(nowM, 0.22, 0.85, 60); // tun - tambor grave revuelto con la melodía
-      if(step%4===2) tambor(nowM, 0.22, 0.70, 95); // tambor agudo
-      if(step%8===4) tambor(nowM, 0.45, 0.90, 55); // bombo grave
-      if(step%4===3) nota(3200, nowM, 0.05, 'triangle', 0.10); // pandero
-      if(step%8===6) nota(1800, nowM, 0.06, 'square', 0.08); // palmas
-      if(step%16===0) nota(1046.5, nowM, 0.60, 'sawtooth', 0.10); // trompeta fiestera
-      step++;
-      return;
-    }
-    // Si el usuario puso Silencio, no tocar
-    if(document.body.innerText.indexOf('Sonido')>-1){ /* no bloquear, el juego ya controla */ }
     var now=ctx.currentTime+0.05;
     var seg=quedanSegundos();
-    var tpt=[523.25,659.25,783.99,1046.5,783.99,659.25,523.25,659.25,523.25,659.25,783.99,1046.5,1174.7,1046.5,783.99,659.25];
-    if(seg<=10 && seg>=0){
-      // SUSPENSO: MISMA melodía de siempre + tun tun tun revuelto, acelerada
-      var TPs = tpt[step%16];
-      if(step%2===0){ nota(TPs, now, 0.42, 'square', 0.24); nota(TPs, now, 0.42, 'sine', 0.24); }
-      if(step%2===1){ nota(TPs*0.5, now, 0.25, 'triangle', 0.16); }
-      // tun tun tun - tambor grave de suspenso en cada golpe, revuelto con la melodía
-      tambor(now, 0.20, 0.90, 60); // tun
-      if(step%2===1) tambor(now, 0.16, 0.70, 70); // tun
-      if(step%4===2) tambor(now, 0.18, 0.75, 65); // tun
-      if(step%8===6) nota(55, now, 0.35, 'sine', 0.22);
-    } else {
-      // FIESTA JUEGO: más movido, tambores en cada golpe, trompeta + bajo
-      var TP=tpt[step%16];
-      if(step%2===0){ nota(TP, now, 0.55, 'square', 0.24); nota(TP, now, 0.55, 'sine', 0.24); }
-      if(step%2===1){ nota(TP*0.5, now, 0.30, 'triangle', 0.18); }
-      tambor(now, 0.22, 0.85, 60); // tun - tambor grave de suspenso revuelto con la melodía
-      if(step%2===1) tambor(now, 0.16, 0.65, 70); // tun
-      if(step%4===2) tambor(now, 0.22, 0.75, 95);
-      if(step%8===4) tambor(now, 0.45, 0.95, 55);
-      if(step%4===1) nota(3200, now, 0.05, 'triangle', 0.10); // pandero
-      if(step%4===3) nota(2000, now, 0.06, 'square', 0.09); // palmas
-      if(step%16===8) nota(880, now, 0.50, 'sawtooth', 0.12); // trompeta
-    }
+    var tenso = (seg<=10 && seg>=0);
+    // Melodía SUSPENSO POP en La menor: A - C - D - E - F - E - D - C, con subida tensa
+    var mel=[440, 523.25, 493.88, 440, 349.23, 392, 440, 523.25, 440, 415.30, 349.23, 392, 440, 523.25, 659.25, 587.33];
+    var TP=mel[step%16];
+    // POP: melodía principal brillante pero en menor = suspenso
+    if(step%2===0){ nota(TP, now, 0.38, 'triangle', 0.20); nota(TP, now, 0.38, 'sine', 0.16); }
+    if(step%2===1){ nota(TP*0.5, now, 0.22, 'sine', 0.14); }
+    // SUSPENSO: bajo grave que late - La grave
+    if(step%4===0){ nota(110, now, 0.45, 'sine', 0.28); nota(55, now, 0.45, 'sine', 0.18); }
+    if(step%8===4){ nota(87.31, now, 0.40, 'sine', 0.22); }
+    // POP: batería - bombo en cada tiempo, palmada pop en el 2 y 4
+    tambor(now, 0.20, 0.85, 60);
+    if(step%4===2) tambor(now, 0.16, 0.65, 80);
+    if(step%8===4){ nota(1800, now, 0.06, 'square', 0.09); nota(2500, now, 0.05, 'triangle', 0.08); }
+    if(step%2===1) nota(6000, now, 0.03, 'triangle', 0.05);
+    // SUSPENSO extra cuando queda poco tiempo: latido más rápido y nota aguda tensa
+    if(tenso){ tambor(now, 0.14, 0.90, 65); if(step%2===1) nota(880, now, 0.18, 'sine', 0.12); }
+    // POP: toque brillante cada 16 pasos
+    if(step%16===12) nota(1046.5, now, 0.50, 'triangle', 0.10);
     step++;
   }
-  function start(){ if(playing) return; playing=true; ensureCtx(); function loop(){ tick(); var seg2=quedanSegundos(); var delay = seg2<=10 && seg2>=0 ? (seg2<=5 ? 125 : 160) : 195; timer=setTimeout(loop, delay); } loop(); }
+  function start(){ if(playing) return; playing=true; ensureCtx(); function loop(){ tick(); var seg2=quedanSegundos(); var delay = seg2<=10 && seg2>=0 ? (seg2<=5 ? 120 : 150) : 175; timer=setTimeout(loop, delay); } loop(); }
   document.addEventListener('touchstart', start, {passive:true});
   document.addEventListener('click', start, {passive:true});
-  // También intentar arrancar si ya está en juego
   setInterval(function(){ if((hayTablero()||hayMapa()) && !playing) start(); }, 1000);
-  // Exponer para el botón de prueba
   window.__musicaExternaStart=start;
 })();
 </script>
@@ -3434,7 +3414,7 @@ c("div",{className:"map-path",children:Array.from({length:Math.max(15,t+10)},(a,
   <div class="shop-top"><button class="close" onclick="document.getElementById('lya-shop2').classList.remove('show')">✕</button><div style="font-weight:1000;color:#7a1e4a">🪙 320 &nbsp; ❤️ 5</div><div style="font-weight:1000">⚙️</div></div>
   <div style="text-align:center;padding:10px 14px 0;font-family:'Brush Script MT','Segoe Script',cursive;font-size:28px;font-weight:900;color:#fff;text-shadow:0 2px 0 #B45309">Tiendita baratita 💖</div>
   <div style="text-align:center;color:#fff;font-weight:800;font-size:12px;padding:0 14px">Para seguir jugando sin gastar mucho</div>
-  <div class="offer"><div class="goldrow"><div><small>❤️</small><br>5 Vidas</div></div><h3>5 Vidas</h3><button class="buy" onclick="lyaBuy('5 Vidas $5')">$5.00</button></div><div class="offer offer2"><div class="goldrow"><div><small>❤️</small><br>1 Vida</div><div><small>🪙</small><br>100 Monedas</div></div><h3>1 Vida con monedas</h3><div style="text-align:center;font-size:12px;font-weight:800;color:#7a1e4a">Usa tus monedas que ya ganaste, sin pagar</div><button class="buy" style="background:#FFB800;color:#7a1e4a;border-color:#B26A00" onclick="if(window.lyaComprarVidaConMonedas){window.lyaComprarVidaConMonedas();}else{alert('Entra a un nivel primero y vuelve a la tienda');}">🪙 100</button></div>
+  <div class="offer"><div class="goldrow"><div><small>❤️</small><br>5 Vidas</div></div><h3>5 Vidas</h3><button class="buy" onclick="lyaBuy('5 Vidas $5')">$5.00</button></div><div class="offer offer2" style="display:none"><div class="goldrow"><div><small>❤️</small><br>1 Vida</div><div><small>🪙</small><br>100 Monedas</div></div><h3>1 Vida con monedas</h3><div style="text-align:center;font-size:12px;font-weight:800;color:#7a1e4a">Usa tus monedas que ya ganaste, sin pagar</div><button class="buy" style="background:#FFB800;color:#7a1e4a;border-color:#B26A00" onclick="if(window.lyaComprarVidaConMonedas){window.lyaComprarVidaConMonedas();}else{alert('Entra a un nivel primero y vuelve a la tienda');}">🪙 100</button></div>
   <div class="offer offer2"><div class="goldrow"><div><small>⏱️</small><br>+5 Segundos</div><div><small>🍫</small><br>+1 Mórula</div></div><h3>+5 Segundos + Mórula</h3><div style="text-align:center;font-size:12px;font-weight:800;color:#7a1e4a">¡2 en 1! Tiempo + explosión de color</div><button class="buy" onclick="lyaBuy('+5 Segundos + 1 Mórula $2')">$2.00</button></div>
   <div class="offer"><div class="goldrow"><div><small>🪙</small><br>50 Monedas</div></div><h3>50 Monedas</h3><button class="buy" onclick="lyaBuy('50 Monedas $5')">$5.00</button></div>
   <div class="offer"><div class="goldrow"><div><small>🔨</small><br>Martillo x3</div></div><h3>Martillo x3</h3><button class="buy" onclick="lyaBuy('Martillo x3 $5')">$5.00</button></div>
@@ -4248,6 +4228,7 @@ if('serviceWorker' in navigator){
       var vidas=parseInt(localStorage.getItem('lya_lives')||'5');
       if(isNaN(vidas)) vidas=5;
       if(vidas>0) return;
+      return; // YA NO SE COMPRA VIDA CON MONEDAS - solo con anuncio para que sí vean anuncios
       if(document.getElementById('btn-comprar-vida-monedas')) return;
       var btn=document.createElement('button');
       btn.id='btn-comprar-vida-monedas';
@@ -4266,6 +4247,114 @@ if('serviceWorker' in navigator){
       dlg.appendChild(btn);
     }catch(e){}
   }, 800);
+})();
+</script>
+<script>
+// MARCA para comprobar que el archivo nuevo SÍ se aplicó - si ves esto, es el archivo nuevo
+(function(){
+  setInterval(function(){
+    try{
+      var wrap=document.querySelector('.start-wrap');
+      if(wrap && !document.getElementById('lya-version-musica')){
+        var d=document.createElement('div');
+        d.id='lya-version-musica';
+        d.textContent='🎵 Música nueva: Suspenso + Pop';
+        d.style.cssText='position:absolute;top:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:800;padding:4px 10px;border-radius:99px;z-index:9999;';
+        wrap.style.position='relative';
+        wrap.appendChild(d);
+      }
+    }catch(e){}
+  }, 1000);
+})();
+</script>
+<style id="lya-hide-coins-corner">.map-coins{display:none !important;}</style><script>
+// ANUNCIO AUTOMATICO CADA 3 NIVELES - para ganar con anuncios
+(function(){
+  var victorias = 0;
+  try{ victorias = parseInt(localStorage.getItem('lya_victorias')||'0')||0; }catch(e){}
+  var ultimoWinAd='';
+  setInterval(function(){
+    try{
+      var win=document.querySelector('.dialog.result.win');
+      if(!win) { ultimoWinAd=''; return; }
+      var key=win.innerText||'win';
+      if(ultimoWinAd===key) return;
+      ultimoWinAd=key;
+      victorias++;
+      try{ localStorage.setItem('lya_victorias', String(victorias)); }catch(e){}
+      // Cada 3 niveles ganados, anuncio automático
+      if(victorias%3===0){
+        setTimeout(function(){
+          try{
+            if(window.lyaWatchAd) window.lyaWatchAd('Anuncio entre niveles');
+            else alert('Anuncio');
+          }catch(e){}
+        }, 800);
+      }
+    }catch(e){}
+  }, 500);
+})();
+</script>
+<script>
+// RAYO DE TORMENTA - convertir láser recto en rayo en zigzag, más rápido pero que se vea
+(function(){
+  function zigzag(x1,y1,x2,y2){
+    // Hacer 4 segmentos en zigzag, como rayo real, no línea recta
+    var pts=[];
+    var segs=4;
+    for(var i=0;i<=segs;i++){
+      var f=i/segs;
+      var x=x1+(x2-x1)*f;
+      var y=y1+(y2-y1)*f;
+      if(i>0 && i<segs){
+        // Desviar perpendicular para que se vea quebrado como rayo
+        var dx=x2-x1, dy=y2-y1;
+        var len=Math.sqrt(dx*dx+dy*dy)||1;
+        var px=-dy/len, py=dx/len;
+        var desvio=(i%2===0?1:-1)*(3+Math.random()*3);
+        x+=px*desvio;
+        y+=py*desvio;
+      }
+      pts.push(x.toFixed(2)+','+y.toFixed(2));
+    }
+    return pts.join(' ');
+  }
+  function convertir(svg){
+    try{
+      var groups=svg.querySelectorAll('g');
+      groups.forEach(function(g){
+        if(g.dataset.rayoConvertido) return;
+        g.dataset.rayoConvertido='1';
+        var lines=g.querySelectorAll('line');
+        lines.forEach(function(line){
+          try{
+            var x1=parseFloat(line.getAttribute('x1')), y1=parseFloat(line.getAttribute('y1'));
+            var x2=parseFloat(line.getAttribute('x2')), y2=parseFloat(line.getAttribute('y2'));
+            var pts=zigzag(x1,y1,x2,y2);
+            var poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+            poly.setAttribute('points', pts);
+            poly.setAttribute('fill','none');
+            poly.setAttribute('stroke', line.getAttribute('stroke'));
+            poly.setAttribute('stroke-width', line.getAttribute('stroke-width'));
+            poly.setAttribute('class', line.getAttribute('class'));
+            var style=line.getAttribute('style');
+            if(style) poly.setAttribute('style', style);
+            // Calcular largo aproximado para el dash
+            var dx=x2-x1, dy=y2-y1;
+            var len=Math.sqrt(dx*dx+dy*dy)*1.25;
+            poly.style.setProperty('--rayLen', len);
+            g.appendChild(poly);
+            line.remove();
+          }catch(e){}
+        });
+      });
+    }catch(e){}
+  }
+  var obs=new MutationObserver(function(){
+    document.querySelectorAll('svg.morula-rays').forEach(convertir);
+  });
+  obs.observe(document.body, {childList:true, subtree:true});
+  setInterval(function(){ document.querySelectorAll('svg.morula-rays').forEach(convertir); }, 50);
 })();
 </script>
 </body>
