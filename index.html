@@ -3490,14 +3490,7 @@ function lyaBuy(nombre){
         clearInterval(_adTimer); _adTimer=null;
         // Al final, Google pone su tacha sola. Aquí mostramos Reclamar solo para la prueba.
         if(close) close.style.display='block';
-        // Si no pica Reclamar en 5 seg, cerrar solo y dar premio para que no se trabe
-        setTimeout(function(){
-          if(ad.classList.contains('show')){
-            ad.classList.remove('show');
-            var toast=document.getElementById('lya-toast');
-            if(toast){ toast.textContent='¡Gracias por ver el anuncio! Ganaste: '+window._adPremio+' 🎉'; toast.style.display='block'; setTimeout(function(){ toast.style.display='none'; }, 2600); }
-          }
-        }, 5000);
+        // NO cerrar solo - solo cuando TÚ le picas a Reclamar, para que no cruce automático
       }
     }, 1000);
     close.onclick=function(){
@@ -4275,38 +4268,53 @@ if('serviceWorker' in navigator){
 })();
 </script>
 <style id="lya-hide-coins-corner">.map-coins{display:none !important;}</style><script>
-// ANUNCIO AUTOMATICO POR NIVEL - solo en nivel 3, 6, 9, 12... no en nivel 1
+// ANUNCIO MANUAL - Solo cuando TÚ le picas a Siguiente Nivel, nunca automático
+// Si ganas nivel 3, 6, 9, 12... y le picas a Siguiente, ahí sale el anuncio. Si no le picas, no sale nada y no cruza solo.
 (function(){
-  var ultimoNivelConAnuncio = 0;
-  try{ ultimoNivelConAnuncio = parseInt(localStorage.getItem('lya_ultimo_nivel_anuncio')||'0')||0; }catch(e){}
-  var yaMostroEsteWin = false;
-  setInterval(function(){
+  // Escuchar el click en Siguiente Nivel
+  document.addEventListener('click', function(e){
     try{
-      var win=document.querySelector('.dialog.result.win');
-      if(!win){ yaMostroEsteWin=false; return; }
-      if(yaMostroEsteWin) return;
-      yaMostroEsteWin=true;
-      // ¿Qué nivel acabas de ganar? Lo sacamos del cuadrito o del guardado
+      var b = e.target && e.target.closest ? e.target.closest('button') : null;
+      if(!b) return;
+      var txt = (b.textContent||'').trim();
+      if(!txt.includes('Siguiente Nivel')) return;
+      // ¿Qué nivel acabas de ganar? Lo sacamos del guardado
       var nivel=0;
       try{
-        var txt=win.innerText||'';
-        var m=txt.match(/Nivel\s*(\d+)/i);
-        if(m) nivel=parseInt(m[1])||0;
-        if(!nivel){
-          var saved=JSON.parse(localStorage.getItem('lya_save')||'{}');
-          nivel=parseInt(saved.level||'0')||0;
+        var saved=JSON.parse(localStorage.getItem('lya_save')||'{}');
+        nivel=parseInt(saved.level||'0')||0;
+        // También buscar en el diálogo
+        var win=document.querySelector('.dialog.result.win');
+        if(win){
+          var m=(win.innerText||'').match(/Nivel\s*(\d+)/i);
+          if(m) nivel=parseInt(m[1])||nivel;
         }
-      }catch(e){}
-      // Solo si el nivel es 3, 6, 9, 12... y no acabamos de mostrar anuncio en ese nivel
-      if(nivel>0 && nivel%3===0 && nivel!==ultimoNivelConAnuncio){
-        ultimoNivelConAnuncio=nivel;
-        try{ localStorage.setItem('lya_ultimo_nivel_anuncio', String(nivel)); }catch(e){}
-        setTimeout(function(){
-          try{ if(window.lyaWatchAd) window.lyaWatchAd('Anuncio entre niveles'); }catch(e){}
-        }, 800);
+      }catch(err){}
+      // Solo en 3, 6, 9, 12... mostrar anuncio ANTES de cruzar. En los demás, dejar que cruce normal.
+      if(nivel>0 && nivel%3===0){
+        // No dejar que cruce todavía, primero mostrar anuncio
+        e.preventDefault();
+        e.stopPropagation();
+        // Evitar doble anuncio en el mismo nivel
+        var ultimo=parseInt(localStorage.getItem('lya_ultimo_nivel_anuncio')||'0')||0;
+        if(ultimo===nivel){
+          // Ya salió anuncio en este nivel, dejar que cruce normal: simular click de nuevo sin bloquear
+          // Quitamos el bloqueo temporalmente y volvemos a picar el botón
+          setTimeout(function(){
+            try{ b.click(); }catch(err){}
+          }, 50);
+          return;
+        }
+        localStorage.setItem('lya_ultimo_nivel_anuncio', String(nivel));
+        // Mostrar anuncio
+        try{
+          if(window.lyaWatchAd) window.lyaWatchAd('Anuncio entre niveles');
+          // Cuando se cierre el anuncio (Reclamar o 5 seg), el juego ya debe dejar que cruces.
+          // El botón de Siguiente sigue ahí, tú le vuelves a picar y ya cruza sin anuncio.
+        }catch(err){}
       }
-    }catch(e){}
-  }, 500);
+    }catch(err){}
+  }, true);
 })();
 </script>
 <script>
@@ -4457,19 +4465,13 @@ if('serviceWorker' in navigator){
       div.innerHTML = '<div style="background:#fff;border-radius:24px;padding:22px 18px;box-shadow:0 10px 30px rgba(0,0,0,0.3);max-width:320px"><div style="font-size:50px">🎉</div><h2 style="color:#FF2E8A;margin:8px 0">¡Lo lograste!</h2><p style="color:#0B2B4A;margin:0 0 12px">Toca el botón para seguir al siguiente nivel</p><button style="background:#FF2E8A;color:#fff;border:none;padding:15px 20px;border-radius:99px;font-size:19px;font-weight:900;width:100%;box-shadow:0 4px 0 #8A0030">➡ SIGUIENTE NIVEL</button><p style="font-size:12px;color:#666;margin:10px 0 0">Si no avanza, toca aquí</p></div>';
       div.onclick = function(){
         try{
-          // Limpiar la lluvia trabada y volver al mapa para elegir siguiente nivel
-          var conf = document.querySelectorAll('.confetti');
-          conf.forEach(function(c){ c.style.display='none'; });
-          // Guardar que ya pasó el nivel y recargar al mapa
-          try{
-            var saved = JSON.parse(localStorage.getItem('lya_save')||'{}');
-            var lvl = saved.level || 2;
-            // Si estaba en nivel 2 y ganó, subir a 3
-            localStorage.setItem('lya_save', JSON.stringify({level: lvl+1, coins: saved.coins||'320', time: Date.now()}));
-          }catch(e){}
-          var url = window.location.href.split('?')[0] + '?v=' + Date.now() + '&mapa=1';
-          window.location.href = url;
-        }catch(e){ location.reload(); }
+          // NO RECARGAR - solo quitar lluvia y mostrar tablero/mapa que ya estaba
+          div.remove();
+          document.querySelectorAll('.confetti, .lya-confetti').forEach(function(c){ c.style.display='none'; c.style.opacity='0'; });
+          var win=document.querySelector('.dialog.result.win'); if(win){ win.style.display='block'; win.style.zIndex='999999'; }
+          var board=document.querySelector('.board'); if(board){ board.style.display='block'; board.style.opacity='1'; board.style.visibility='visible'; }
+          var mapa=document.querySelector('.map-shell'); if(mapa){ mapa.style.display='flex'; mapa.style.opacity='1'; }
+        }catch(e){ div.remove(); }
       };
       document.body.appendChild(div);
     }catch(e){}
@@ -4562,11 +4564,26 @@ setInterval(function(){
       div.innerHTML='<div style="font-size:50px">🍬</div><h2 style="color:#0B2B4A;margin:8px 0">LYA CRUSH</h2><p style="color:#0B2B4A">Se quedó en la lluvia, toca para seguir</p><button style="background:#FF2E8A;color:#fff;border:none;padding:15px 28px;border-radius:99px;font-size:19px;font-weight:900;box-shadow:0 4px 0 #8A0030">➡ SEGUIR JUGANDO</button>';
       div.querySelector('button').onclick=function(){
         try{
-          var saved=JSON.parse(localStorage.getItem('lya_save')||'{}');
-          var lvl=parseInt(saved.level||'1')||1;
-          // Si ya ganó, no quedarse en el mismo nivel, ir al mapa para elegir siguiente
-          window.location.href=window.location.href.split('?')[0]+'?v='+Date.now()+'&mapa=1';
-        }catch(e){ location.reload(); }
+          // NO RECARGAR - solo quitar la lluvia y mostrar lo que ya estaba atrás (tablero o mapa)
+          div.remove();
+          document.querySelectorAll('.confetti, .lya-confetti, .particles, [class*="confetti"]').forEach(function(el){ el.style.display='none'; el.style.opacity='0'; });
+          // Si había un cuadrito de ganar tapado, mostrarlo adelante
+          var win=document.querySelector('.dialog.result.win');
+          if(win){ win.style.display='block'; win.style.opacity='1'; win.style.zIndex='999999'; win.style.pointerEvents='auto'; }
+          var lose=document.querySelector('.dialog.result.lose');
+          if(lose){ lose.style.display='block'; lose.style.opacity='1'; lose.style.zIndex='999999'; lose.style.pointerEvents='auto'; }
+          // Si hay tablero o mapa escondido, mostrarlo
+          var board=document.querySelector('.board'); if(board){ board.style.display='block'; board.style.opacity='1'; board.style.visibility='visible'; }
+          var mapa=document.querySelector('.map-shell'); if(mapa){ mapa.style.display='flex'; mapa.style.opacity='1'; mapa.style.visibility='visible'; }
+          // Si después de 1 segundo sigue sin tablero ni mapa ni diálogo, ahí sí recargar pero SIN splash de Cargando
+          setTimeout(function(){
+            var hay=document.querySelector('.board') || document.querySelector('.map-shell') || document.querySelector('.dialog');
+            if(!hay){
+              try{ localStorage.setItem('lya_skip_splash','1'); }catch(e){}
+              window.location.href=window.location.href.split('?')[0]+'?v='+Date.now();
+            }
+          }, 1000);
+        }catch(e){ div.remove(); }
       };
       document.body.appendChild(div);
     }catch(e){}
@@ -4584,6 +4601,23 @@ setInterval(function(){
       }, 2500);
     }catch(e){}
   }, 1000);
+})();
+</script>
+
+<script>
+// Si venimos de SEGUIR JUGANDO, saltar el splash de Cargando para no empezar de nuevo
+(function(){
+  try{
+    if(localStorage.getItem('lya_skip_splash')==='1'){
+      localStorage.removeItem('lya_skip_splash');
+      var sp=document.getElementById('lya-splash');
+      if(sp){ sp.style.display='none'; }
+      // También quitar cualquier pantalla de carga que tarde
+      setTimeout(function(){
+        var s2=document.getElementById('lya-splash'); if(s2) s2.remove();
+      }, 100);
+    }
+  }catch(e){}
 })();
 </script>
 </body>
