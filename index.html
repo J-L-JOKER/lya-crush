@@ -4620,10 +4620,10 @@ setInterval(function(){
   }catch(e){}
 })();
 </script>
-<div id="lya-version" style="position:fixed;bottom:4px;right:6px;z-index:9999999;background:#000;color:#fff;font-size:10px;padding:2px 6px;border-radius:999px;">V107 - LIMPIO SIN ANUNCIOS</div>
+<div id="lya-version" style="position:fixed;bottom:4px;right:6px;z-index:9999999;background:#000;color:#fff;font-size:10px;padding:2px 6px;border-radius:999px;">V109 - SI CRUZA</div>
 <style>
 /* LIMPIO TOTAL AL CRUZAR NIVEL - Nada que tape, nada que se atore */
-.dialog.result.win, .dialog.result.lose { display:none !important; }
+/* V109: NO esconder el diálogo de ganar, si lo escondes no se puede picar Siguiente */
 .confetti, .lya-confetti, .win-lights, .win-animal { display:none !important; opacity:0 !important; pointer-events:none !important; }
 [id*="lya-toca"], [id*="lya-seguir"], [class*="lya-toca"], [class*="lya-seguir"] { display:none !important; }
 /* Anuncio nunca */
@@ -4674,7 +4674,7 @@ setInterval(function(){
     var win=document.querySelector('.dialog.result.win');
     if(win && !cruzando){
       cruzando=true;
-      win.style.display='none';
+      /* V109: NO esconder antes de picar, dejarlo visible para que el click sí funcione */
       // Buscar el botón Siguiente Nivel dentro y picarlo para cruzar al otro nivel
       var btns=win.querySelectorAll('button');
       for(var i=0;i<btns.length;i++){
@@ -4707,8 +4707,40 @@ setInterval(function(){
       var c=el.closest('div'); if(c) c.remove(); el.remove();
     }
   });
-  var v=document.getElementById('lya-version'); if(v) v.textContent='V108 - LIMPIO';
+  var v=document.getElementById('lya-version'); if(v) v.textContent='V109 - SI CRUZA';
 }, 500);
+</script>
+
+<script>
+// V109 - Auto-cruce BUENO: deja visible el Siguiente, lo pica visible, no lo esconde antes
+(function(){
+  var intentando=false;
+  setInterval(function(){
+    var win=document.querySelector('.dialog.result.win');
+    if(win && !intentando){
+      intentando=true;
+      // No esconder, dejarlo visible 1200ms para que React lo vea
+      setTimeout(function(){
+        try{
+          var btns=win.querySelectorAll('button');
+          for(var i=0;i<btns.length;i++){
+            if((btns[i].textContent||'').includes('Siguiente')){
+              btns[i].click();
+              // Si después de 1.5 seg sigue ahí, picarlo otra vez
+              setTimeout(function(){
+                var win2=document.querySelector('.dialog.result.win');
+                if(win2){ var b2=win2.querySelector('button'); if(b2) b2.click(); }
+                intentando=false;
+              }, 1500);
+              return;
+            }
+          }
+          intentando=false;
+        }catch(e){ intentando=false; }
+      }, 1200);
+    }
+  }, 500);
+})();
 </script>
 </body>
 
