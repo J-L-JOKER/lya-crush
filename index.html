@@ -4620,6 +4620,83 @@ setInterval(function(){
   }catch(e){}
 })();
 </script>
+<div id="lya-version" style="position:fixed;bottom:4px;right:6px;z-index:9999999;background:#000;color:#fff;font-size:10px;padding:2px 6px;border-radius:999px;">V107 - LIMPIO SIN ANUNCIOS</div>
+<style>
+/* LIMPIO TOTAL AL CRUZAR NIVEL - Nada que tape, nada que se atore */
+.dialog.result.win, .dialog.result.lose { display:none !important; }
+.confetti, .lya-confetti, .win-lights, .win-animal { display:none !important; opacity:0 !important; pointer-events:none !important; }
+[id*="lya-toca"], [id*="lya-seguir"], [class*="lya-toca"], [class*="lya-seguir"] { display:none !important; }
+/* Anuncio nunca */
+#lya-ad, .lya-ad, [id*="lya-ad"] { display:none !important; }
+/* Tachita X para regresar al inicio */
+#lya-x-inicio { position:fixed; top:8px; right:8px; z-index:9999999; width:32px; height:32px; border-radius:50%; background:#0B2B4A; color:#fff; border:2px solid #fff; font-size:18px; font-weight:900; line-height:28px; text-align:center; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.4); }
+</style>
+<script>
+// LIMPIEZA TOTAL: Cruce automático sin diálogos, sin anuncios, sin SEGUIR JUGANDO
+(function(){
+  // 1. Quitar anuncio para siempre
+  window.lyaWatchAd = function(){ return; };
+  window.__playCrowd = function(){ return; };
+  // 2. Poner tachita X
+  function ponerX(){
+    if(document.getElementById('lya-x-inicio')) return;
+    var x=document.createElement('div');
+    x.id='lya-x-inicio'; x.textContent='✕';
+    x.onclick=function(){
+      // Regresar al mapa / inicio sin recargar
+      try{
+        // Buscar botón de Inicio en el juego y picarlo
+        var btns=document.querySelectorAll('button');
+        for(var i=0;i<btns.length;i++){ if((btns[i].textContent||'').trim()==='Inicio'){ btns[i].click(); return; } }
+        // Si no hay botón, quitar diálogos y mostrar mapa
+        document.querySelectorAll('.dialog, .overlay').forEach(function(d){ d.style.display='none'; });
+        var mapa=document.querySelector('.map-shell'); if(mapa){ mapa.style.display='flex'; mapa.style.opacity='1'; }
+      }catch(e){}
+    };
+    document.body.appendChild(x);
+  }
+  ponerX();
+  // 3. Vigilar: si aparece el cuadrito de ganar, el anuncio, o el SEGUIR JUGANDO, quitarlo y cruzar solo
+  var cruzando=false;
+  var obs=new MutationObserver(function(){
+    ponerX();
+    // Quitar cualquier SEGUIR JUGANDO que aparezca
+    document.querySelectorAll('div, button').forEach(function(el){
+      var txt=(el.textContent||'');
+      if(txt.includes('SEGUIR JUGANDO') || txt.includes('Se quedó en la lluvia')){
+        // Si es el botón grandote que tapa, quitar todo su contenedor
+        var c=el.closest('div'); if(c) c.remove(); el.remove();
+      }
+    });
+    // Quitar lluvia / confetti que tape
+    document.querySelectorAll('.confetti').forEach(function(c){ c.style.display='none'; });
+    // Si aparece el diálogo de ganar, cruzar solo sin esperar
+    var win=document.querySelector('.dialog.result.win');
+    if(win && !cruzando){
+      cruzando=true;
+      win.style.display='none';
+      // Buscar el botón Siguiente Nivel dentro y picarlo para cruzar al otro nivel
+      var btns=win.querySelectorAll('button');
+      for(var i=0;i<btns.length;i++){
+        if((btns[i].textContent||'').includes('Siguiente')){
+          setTimeout(function(b){ try{ b.click(); }catch(e){} cruzando=false; }, 600, btns[i]);
+          return;
+        }
+      }
+      // Si no hay botón, recargar al siguiente nivel sin splash
+      setTimeout(function(){ cruzando=false; }, 1000);
+    }
+    // Si aparece anuncio, quitarlo
+    var ad=document.getElementById('lya-ad'); if(ad) ad.style.display='none';
+  });
+  obs.observe(document.body, {childList:true, subtree:true});
+  // También revisar cada 500ms por si se le escapa algo al observador
+  setInterval(function(){
+    ponerX();
+    document.querySelectorAll('.confetti').forEach(function(c){ c.style.display='none'; });
+  }, 500);
+})();
+</script>
 </body>
 
 </html>
