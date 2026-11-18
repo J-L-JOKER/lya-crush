@@ -4697,6 +4697,19 @@ setInterval(function(){
   }, 500);
 })();
 </script>
+
+<script>
+// V108 - Solo quita el CARGAR JUEGO que faltaba, no toca nada más
+setInterval(function(){
+  document.querySelectorAll('div, button').forEach(function(el){
+    var txt=(el.textContent||'');
+    if(txt.includes('CARGAR JUEGO') && el.id!=='lya-x-inicio'){
+      var c=el.closest('div'); if(c) c.remove(); el.remove();
+    }
+  });
+  var v=document.getElementById('lya-version'); if(v) v.textContent='V108 - LIMPIO';
+}, 500);
+</script>
 </body>
 
 </html>
